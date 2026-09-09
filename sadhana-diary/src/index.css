@@ -1,0 +1,66 @@
+:root {
+  --primary: #f97316;
+  --bg-main: #f9fafb;
+  --text-main: #1f2937;
+}
+
+/* Theme Palettes */
+body.theme-default { --primary: #f97316; --bg-main: #f9fafb; }
+body.theme-krishna { --primary: #1d4ed8; --bg-main: #eff6ff; } /* Peacock Blue */
+body.theme-radharani { --primary: #db2777; --bg-main: #fdf2f8; } /* Divine Pink/Gold */
+body.theme-balaram { --primary: #15803d; --bg-main: #f0fdf4; } /* Forest Green/White */
+body.theme-gaura { --primary: #ca8a04; --bg-main: #fefce8; } /* Golden Gaura */
+body.theme-nityananda { --primary: #0284c7; --bg-main: #f0f9ff; } /* Merciful Blue */
+body.theme-prabhupada { --primary: #9a3412; --bg-main: #fff7ed; } /* Traditional Saffron */
+body.theme-panchatatva { --primary: #7c3aed; --bg-main: #f5f3ff; } /* Majestic Violet/Gold */
+
+body {
+  margin: 0;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: system-ui, sans-serif;
+  transition: background-color 0.3s ease;
+}
+
+.sadhana-container {
+  max-width: 400px;
+  margin: 0 auto;
+  background-color: white;
+  min-height: 100vh;
+  padding-bottom: 70px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+.nav-bar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #6b7280;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+.header-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
