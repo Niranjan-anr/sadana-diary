@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getTheme } from '../lib/themes';
 
 interface SadhanaState {
   fullName: string;
@@ -11,7 +12,7 @@ interface SadhanaState {
   decrementRound: () => void;
   resetRounds: () => void;
   setJapaRounds: (rounds: number) => void;
-  
+
   readingSeconds: number;
   isReading: boolean;
   toggleTimer: () => void;
@@ -30,12 +31,30 @@ interface SadhanaState {
   setSleepTime: (time: string) => void;
 }
 
+function applyThemeToDocument(themeId: string) {
+  const theme = getTheme(themeId);
+
+  document.body.className = `theme-${themeId}`;
+
+  // Accent colors used across the whole app via CSS variables
+  document.documentElement.style.setProperty('--primary', theme.color);
+  document.documentElement.style.setProperty('--primary-dark', theme.colorDark);
+
+  // Full-page HD background image with a soft white wash so cards stay readable
+  document.body.style.backgroundImage =
+    `linear-gradient(rgba(255,255,255,0.90), rgba(255,255,255,0.90)), url(${theme.bgImage})`;
+  document.body.style.backgroundSize = 'cover';
+  document.body.style.backgroundPosition = 'center';
+  document.body.style.backgroundAttachment = 'fixed';
+  document.body.style.backgroundRepeat = 'no-repeat';
+}
+
 export const useSadhanaStore = create<SadhanaState>((set) => ({
   fullName: 'Devotee',
   setFullName: (name) => set({ fullName: name }),
   theme: 'default',
   setTheme: (theme) => {
-    document.body.className = `theme-${theme}`;
+    applyThemeToDocument(theme);
     set({ theme });
   },
 

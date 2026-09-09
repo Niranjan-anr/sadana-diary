@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { updateUserProfile } from '../lib/api';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -8,6 +9,7 @@ export default function Auth() {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,14 +56,38 @@ export default function Auth() {
           required
           style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '1rem' }}
         />
-        <input 
-          type="password" 
-          placeholder="Password" 
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: '12px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '1rem' }}
-        />
+
+        <div style={{ position: 'relative' }}>
+          <input 
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{ padding: '12px', paddingRight: '44px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '1rem', width: '100%', boxSizing: 'border-box' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              color: '#6b7280',
+              padding: 0,
+            }}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
+
         <button 
           type="submit" 
           disabled={loading}
