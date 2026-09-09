@@ -59,14 +59,16 @@ export default function Dashboard() {
   const handleShareReport = () => {
     const todayStr = new Date().toLocaleDateString();
     const reportText = 
-      `🌿 *Sadhana Report - ${todayStr}* 🌿\n` +
-      `Hare Krishna Prabhu, please accept my humble obeisances. All glories to Srila Prabhupada.\n\n` +
-      `📿 Japa Rounds: ${japaRounds} / 16\n` +
-      `🌅 Wake Up: ${wakeTime || 'Not set'}\n` +
-      `🌙 Sleep: ${sleepTime || 'Not set'}\n` +
-      `📖 Reading: ${formatTime(totalReadingSecs)}\n` +
-      `🎧 Hearing: ${formatTime(totalHearingSecs)}\n\n` +
-      `Your servant,`;
+      `Hare Krishna Prabhuji,\n` +
+      `Dandavat Pranam.\n\n` +
+      `My today's report (${todayStr}):\n\n` +
+      `Wake up time: ${wakeTime || 'Not set'}\n` +
+      `Sleep time: ${sleepTime || 'Not set'}\n` +
+      `Japa rounds: ${japaRounds} / 16\n` +
+      `Reading: ${formatTime(totalReadingSecs)}\n` +
+      `Hearing: ${formatTime(totalHearingSecs)}\n\n` +
+      `Your servant,\n` +
+      `${fullName}`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(reportText);
