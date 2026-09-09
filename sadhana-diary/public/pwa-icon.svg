@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<<<<<<< HEAD
   <!-- Orange Background -->
   <rect width="512" height="512" rx="112" fill="#f97316"/>
   
@@ -14,5 +15,13 @@
   <path d="M292 370 C 372 370, 442 330, 462 250 C 422 310, 352 340, 292 370 Z" fill="#ffffff" opacity="0.7"/>
   
   <!-- Base Accent -->
+=======
+  <rect width="512" height="512" rx="112" fill="#f97316"/>
+  <path d="M256 120 C 256 120, 210 250, 256 380 C 302 250, 256 120, 256 120 Z" fill="#ffffff"/>
+  <path d="M256 360 C 180 340, 120 280, 110 180 C 140 250, 200 300, 256 360 Z" fill="#ffffff" opacity="0.9"/>
+  <path d="M220 370 C 140 370, 70 330, 50 250 C 90 310, 160 340, 220 370 Z" fill="#ffffff" opacity="0.7"/>
+  <path d="M256 360 C 332 340, 392 280, 402 180 C 372 250, 312 300, 256 360 Z" fill="#ffffff" opacity="0.9"/>
+  <path d="M292 370 C 372 370, 442 330, 462 250 C 422 310, 352 340, 292 370 Z" fill="#ffffff" opacity="0.7"/>
+>>>>>>> 5dbd5c2 (added pwa)
   <circle cx="256" cy="410" r="16" fill="#ffffff"/>
 </svg>
