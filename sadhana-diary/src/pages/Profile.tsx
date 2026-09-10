@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useSadhanaStore } from '../store/useSadhanaStore';
-import { getUserProfile, updateUserProfile } from '../lib/api';
+import { getUserProfile, updateUserProfile, joinMentorByCode } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { THEMES } from '../lib/themes';
-import { User, Palette, Check } from 'lucide-react';
+import { User, Palette, Check, Users } from 'lucide-react';
 
 export default function Profile() {
   const { fullName, setFullName, theme, setTheme } = useSadhanaStore();
   const [nameInput, setNameInput] = useState(fullName);
   const [userId, setUserId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const [mentorCodeInput, setMentorCodeInput] = useState('');
+  const [joining, setJoining] = useState(false);
+  const [joinedMentorName, setJoinedMentorName] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -42,6 +46,20 @@ export default function Profile() {
     if (userId) await updateUserProfile(userId, { theme: themeId });
   };
 
+  const handleJoinMentor = async () => {
+    if (!userId || !mentorCodeInput.trim()) return;
+    setJoining(true);
+    try {
+      const mentorName = await joinMentorByCode(userId, mentorCodeInput);
+      setJoinedMentorName(mentorName);
+      setMentorCodeInput('');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not connect to that mentor.');
+    } finally {
+      setJoining(false);
+    }
+  };
+
   return (
     <div className="page fade-in">
       <h2 className="page-title">Devotee Profile</h2>
@@ -59,6 +77,30 @@ export default function Profile() {
         </div>
         {saved && <span className="save-confirm"><Check size={14} /> Name saved successfully!</span>}
       </form>
+
+      <div className="card card-pad" style={{ marginBottom: '20px' }}>
+        <label className="input-label">
+          <Users size={16} color="var(--primary)" /> Connect to a Mentor
+        </label>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <input
+            type="text"
+            value={mentorCodeInput}
+            onChange={(e) => setMentorCodeInput(e.target.value)}
+            placeholder="Enter mentor code"
+            className="input"
+            style={{ flex: 1, textTransform: 'uppercase' }}
+          />
+          <button onClick={handleJoinMentor} className="btn btn-primary" disabled={joining}>
+            {joining ? 'Connecting...' : 'Connect'}
+          </button>
+        </div>
+        {joinedMentorName && (
+          <p style={{ color: '#1a9d5c', fontSize: '0.85rem', marginTop: '10px', marginBottom: 0, fontWeight: 700 }}>
+            Connected to {joinedMentorName}!
+          </p>
+        )}
+      </div>
 
       <div className="card card-pad">
         <div className="input-label" style={{ marginBottom: '4px' }}>
