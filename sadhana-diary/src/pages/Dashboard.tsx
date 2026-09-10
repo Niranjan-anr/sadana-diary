@@ -14,7 +14,7 @@ import {
 import type { LeaderboardPeriod } from '../lib/api';
 import { getBhaktiStep } from '../lib/bhaktiSteps';
 import { supabase } from '../lib/supabase';
-import { Sun, Moon, CircleDashed, BookOpen, Headphones, Send, Check, Lock, Trophy, ChevronLeft } from 'lucide-react';
+import { Sun, Moon, CircleDashed, BookOpen, Headphones, Send, Check, Lock, Trophy, ChevronLeft, Pencil } from 'lucide-react';
 
 const DEFAULT_TARGET = { min_rounds: 16, min_reading_seconds: 0, min_hearing_seconds: 0, bhakti_step: null as string | null };
 
@@ -40,6 +40,9 @@ export default function Dashboard() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [justSubmitted, setJustSubmitted] = useState(false);
+
+  // Toggle for Edit mode
+  const [isEditingProgress, setIsEditingProgress] = useState(false);
 
   // Manual overrides for numbers — null means "use the tracked value"
   const [editJapa, setEditJapa] = useState<number | null>(null);
@@ -164,6 +167,9 @@ export default function Dashboard() {
   };
 
   const roundsPct = target.min_rounds > 0 ? Math.round((effectiveJapa / target.min_rounds) * 100) : 0;
+  
+  const displayReadingMaterial = todayReport?.reading_material || editReadingMaterial;
+  const displayHearingMaterial = todayReport?.hearing_material || editHearingMaterial;
 
   return (
     <div className="page fade-in">
@@ -280,7 +286,28 @@ export default function Dashboard() {
           </div>
 
           <div className="card" style={{ marginBottom: '18px' }}>
-            <div className="card-header">Daily Progress</div>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Daily Progress</span>
+              {!alreadySubmitted && (
+                isEditingProgress ? (
+                  <button 
+                    className="btn btn-outline" 
+                    style={{ padding: '4px 12px', fontSize: '0.75rem', borderRadius: '12px', minWidth: 'auto', height: 'auto' }} 
+                    onClick={() => setIsEditingProgress(false)}
+                  >
+                    Save
+                  </button>
+                ) : (
+                  <button 
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }} 
+                    onClick={() => setIsEditingProgress(true)}
+                    aria-label="Edit Progress"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                )
+              )}
+            </div>
 
             <div className="card-row">
               <div className="card-row-left">
@@ -290,7 +317,7 @@ export default function Dashboard() {
                   <div className="card-row-subtitle">{roundsPct}% of your target</div>
                 </div>
               </div>
-              {alreadySubmitted ? (
+              {alreadySubmitted || !isEditingProgress ? (
                 <span className="card-row-value">
                   {effectiveJapa}
                   <span className="text-faint" style={{ fontWeight: 600, fontSize: '0.9rem' }}> / {target.min_rounds}</span>
@@ -313,7 +340,7 @@ export default function Dashboard() {
                   <div className="icon-badge blue"><BookOpen size={20} color="#3b82f6" /></div>
                   <span className="card-row-title">Reading</span>
                 </div>
-                {alreadySubmitted ? (
+                {alreadySubmitted || !isEditingProgress ? (
                   <span className="card-row-value">{formatTime(effectiveReadingSecs)}</span>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -329,10 +356,10 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              {alreadySubmitted ? (
-                todayReport?.reading_material && (
+              {alreadySubmitted || !isEditingProgress ? (
+                displayReadingMaterial && (
                   <p className="text-faint" style={{ fontSize: '0.78rem', margin: '0 0 0 52px' }}>
-                    📖 {todayReport.reading_material}
+                    📖 {displayReadingMaterial}
                   </p>
                 )
               ) : (
@@ -353,7 +380,7 @@ export default function Dashboard() {
                   <div className="icon-badge violet"><Headphones size={20} color="#8b5cf6" /></div>
                   <span className="card-row-title">Hearing</span>
                 </div>
-                {alreadySubmitted ? (
+                {alreadySubmitted || !isEditingProgress ? (
                   <span className="card-row-value">{formatTime(effectiveHearingSecs)}</span>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -369,10 +396,10 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              {alreadySubmitted ? (
-                todayReport?.hearing_material && (
+              {alreadySubmitted || !isEditingProgress ? (
+                displayHearingMaterial && (
                   <p className="text-faint" style={{ fontSize: '0.78rem', margin: '0 0 0 52px' }}>
-                    🎧 {todayReport.hearing_material}
+                    🎧 {displayHearingMaterial}
                   </p>
                 )
               ) : (
@@ -390,7 +417,7 @@ export default function Dashboard() {
 
           {!alreadySubmitted && (
             <p className="text-faint" style={{ fontSize: '0.8rem', textAlign: 'center' }}>
-              Haven't submitted by midnight? Your report sends automatically with today's numbers as they stand.
+              Please submit your report on time everyday! 
             </p>
           )}
 
