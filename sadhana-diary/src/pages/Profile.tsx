@@ -7,7 +7,7 @@ import { User, Palette, Check, Users } from 'lucide-react';
 
 export default function Profile() {
   const { fullName, setFullName, theme, setTheme } = useSadhanaStore();
-  const [nameInput, setNameInput] = useState(fullName);
+  const [nameInput, setNameInput] = useState(fullName || 'Devotee');
   const [userId, setUserId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -21,11 +21,13 @@ export default function Profile() {
         setUserId(user.id);
         const profile = await getUserProfile(user.id);
         if (profile) {
-          if (profile.full_name) {
-            setFullName(profile.full_name);
-            setNameInput(profile.full_name);
-          }
+          const currentName = profile.full_name && profile.full_name.trim() !== '' ? profile.full_name : 'Devotee';
+          setFullName(currentName);
+          setNameInput(currentName);
           if (profile.theme) setTheme(profile.theme);
+        } else {
+          setFullName('Devotee');
+          setNameInput('Devotee');
         }
       }
     });
@@ -33,9 +35,11 @@ export default function Profile() {
 
   const handleSaveName = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFullName(nameInput);
+    const finalName = nameInput.trim() || 'Devotee';
+    setFullName(finalName);
+    setNameInput(finalName);
     if (userId) {
-      await updateUserProfile(userId, { full_name: nameInput });
+      await updateUserProfile(userId, { full_name: finalName });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }
@@ -72,7 +76,14 @@ export default function Profile() {
           <User size={16} color="var(--primary)" /> Your Name / Spiritual Name
         </label>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <input type="text" value={nameInput} onChange={(e) => setNameInput(e.target.value)} placeholder="e.g., Niranjan Das" className="input" style={{ flex: 1 }} />
+          <input 
+            type="text" 
+            value={nameInput} 
+            onChange={(e) => setNameInput(e.target.value)} 
+            placeholder="Enter your name" 
+            className="input" 
+            style={{ flex: 1 }} 
+          />
           <button type="submit" className="btn btn-primary">Save</button>
         </div>
         {saved && <span className="save-confirm"><Check size={14} /> Name saved successfully!</span>}
