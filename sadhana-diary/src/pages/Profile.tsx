@@ -1,146 +1,139 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSadhanaStore } from '../store/useSadhanaStore';
+import { getUserProfile, updateUserProfile, joinMentorByCode } from '../lib/api';
 import { supabase } from '../lib/supabase';
-import { Eye, EyeOff, X } from 'lucide-react';
+import { THEMES } from '../lib/themes';
+import { User, Palette, Check, Users } from 'lucide-react';
 
-export default function Auth() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+export default function Profile() {
+  const { fullName, setFullName, theme, setTheme } = useSadhanaStore();
+  const [nameInput, setNameInput] = useState(fullName || 'Devotee');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const [mentorCodeInput, setMentorCodeInput] = useState('');
+  const [joining, setJoining] = useState(false);
+  const [joinedMentorName, setJoinedMentorName] = useState<string | null>(null);
 
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) alert(error.message);
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) {
-        alert(error.message);
-      } else {
-        // Show the success dialog upon successful account creation
-        setShowSuccessDialog(true);
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        setUserId(user.id);
+        const profile = await getUserProfile(user.id);
+        if (profile) {
+          const currentName = profile.full_name && profile.full_name.trim() !== '' ? profile.full_name : 'Devotee';
+          setFullName(currentName);
+          setNameInput(currentName);
+          if (profile.theme) setTheme(profile.theme);
+        } else {
+          setFullName('Devotee');
+          setNameInput('Devotee');
+        }
       }
-    }
+    });
+  }, [setFullName, setTheme]);
 
-    setLoading(false);
+  const handleSaveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalName = nameInput.trim() || 'Devotee';
+    setFullName(finalName);
+    setNameInput(finalName);
+    if (userId) {
+      await updateUserProfile(userId, { full_name: finalName });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  };
+
+  const handleSelectTheme = async (themeId: string) => {
+    setTheme(themeId);
+    if (userId) await updateUserProfile(userId, { theme: themeId });
+  };
+
+  const handleJoinMentor = async () => {
+    if (!userId || !mentorCodeInput.trim()) return;
+    setJoining(true);
+    try {
+      const mentorName = await joinMentorByCode(userId, mentorCodeInput);
+      setJoinedMentorName(mentorName);
+      setMentorCodeInput('');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not connect to that mentor.');
+    } finally {
+      setJoining(false);
+    }
   };
 
   return (
-    <>
-      <div className="page fade-in auth-wrap">
-        <img 
-          src="/images/themes/prabhupada.jpg" 
-          alt="Srila Prabhupada" 
-          className="auth-logo" 
-          style={{ 
-            width: '80px', 
-            height: '80px', 
-            borderRadius: '50%', 
-            objectFit: 'cover', 
-            objectPosition: 'top',
-            margin: '0 auto 16px', 
-            display: 'block' 
-          }} 
-        />
+    <div className="page fade-in">
+      <h2 className="page-title">Devotee Profile</h2>
+      <p className="page-subtitle" style={{ marginBottom: '22px' }}>
+        Customize your name and choose your transcendental theme.
+      </p>
 
-        <h2 className="page-title" style={{ fontSize: '1.6rem', textAlign: 'center' }}>Sadhana Diary</h2>
-        <p className="page-subtitle" style={{ marginBottom: '30px', textAlign: 'center' }}>
-          Sign in to track your daily offerings to Krishna.
-        </p>
-
-        <form onSubmit={handleAuth} className="auth-form">
-          <input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="input"
+      <form onSubmit={handleSaveName} className="card card-pad" style={{ marginBottom: '20px' }}>
+        <label className="input-label">
+          <User size={16} color="var(--primary)" /> Your Name / Spiritual Name
+        </label>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <input 
+            type="text" 
+            value={nameInput} 
+            onChange={(e) => setNameInput(e.target.value)} 
+            placeholder="Enter your name" 
+            className="input" 
+            style={{ flex: 1 }} 
           />
+          <button type="submit" className="btn btn-primary">Save</button>
+        </div>
+        {saved && <span className="save-confirm"><Check size={14} /> Name saved successfully!</span>}
+      </form>
 
-          <div className="password-wrap">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="input"
-              style={{ paddingRight: '44px' }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="password-toggle"
-            >
-              {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
-            </button>
-          </div>
-
-          <button type="submit" disabled={loading} className="btn btn-primary btn-full" style={{ padding: '15px', marginTop: '6px' }}>
-            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
+      <div className="card card-pad" style={{ marginBottom: '20px' }}>
+        <label className="input-label">
+          <Users size={16} color="var(--primary)" /> Connect to a Mentor
+        </label>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <input
+            type="text"
+            value={mentorCodeInput}
+            onChange={(e) => setMentorCodeInput(e.target.value)}
+            placeholder="Enter mentor code"
+            className="input"
+            style={{ flex: 1, textTransform: 'uppercase' }}
+          />
+          <button onClick={handleJoinMentor} className="btn btn-primary" disabled={joining}>
+            {joining ? 'Connecting...' : 'Connect'}
           </button>
-        </form>
-
-        <button type="button" onClick={() => setIsLogin(!isLogin)} className="auth-switch">
-          {isLogin ? 'New devotee? Create an account' : 'Already have an account? Sign in'}
-        </button>
+        </div>
+        {joinedMentorName && (
+          <p style={{ color: '#1a9d5c', fontSize: '0.85rem', marginTop: '10px', marginBottom: 0, fontWeight: 700 }}>
+            Connected to {joinedMentorName}!
+          </p>
+        )}
       </div>
 
-      {/* Success Dialog Overlay */}
-      {showSuccessDialog && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000, padding: '20px', backdropFilter: 'blur(4px)'
-        }}>
-          <div style={{
-            backgroundColor: 'var(--bg-color, #ffffff)',
-            color: 'var(--text-color, #333333)',
-            padding: '30px 24px',
-            borderRadius: '12px',
-            position: 'relative',
-            maxWidth: '380px',
-            width: '100%',
-            textAlign: 'center',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-          }}>
-            <button 
-              onClick={() => setShowSuccessDialog(false)} 
-              style={{
-                position: 'absolute', top: '12px', right: '12px',
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted, #888)', padding: '4px'
-              }}
-              aria-label="Close"
-            >
-              <X size={22} />
-            </button>
-            <h3 style={{ marginTop: '0', marginBottom: '12px', fontSize: '1.4rem' }}>Hare Krishna! 🙏</h3>
-            <p style={{ marginBottom: '24px', lineHeight: '1.5' }}>
-              Account created successfully! Please go to the <strong>Profile tab</strong> to update your name and set your theme.
-            </p>
-            <button 
-              className="btn btn-primary"
-              style={{ width: '100%', padding: '12px' }}
-              onClick={() => setShowSuccessDialog(false)}
-            >
-              Continue
-            </button>
-          </div>
+      <div className="card card-pad">
+        <div className="input-label" style={{ marginBottom: '4px' }}>
+          <Palette size={16} color="var(--primary)" /> Select Devotional Theme
         </div>
-      )}
-    </>
+        <p className="text-faint" style={{ fontSize: '0.78rem', marginTop: 0, marginBottom: '14px' }}>
+          Each theme changes the accent color and background across the whole app.
+        </p>
+
+        <div className="theme-grid">
+          {THEMES.map((t) => {
+            const active = theme === t.id;
+            return (
+              <div key={t.id} onClick={() => handleSelectTheme(t.id)} className={`theme-tile${active ? ' theme-tile-active' : ''}`} style={{ backgroundImage: `url(${t.bgImage})`, borderColor: active ? t.color : 'transparent' }}>
+                <div className="theme-tile-dot" style={{ backgroundColor: t.color }} />
+                {active && <div className="theme-tile-check"><Check size={12} color={t.color} /></div>}
+                <div className="theme-tile-overlay"><span className="theme-tile-label">{t.name}</span></div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
