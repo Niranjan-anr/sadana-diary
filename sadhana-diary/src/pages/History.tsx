@@ -34,9 +34,8 @@ export default function History() {
           </div>
           <div className="stat-value">{totalRounds}</div>
         </div>
-
         <div className="stat-card">
-          <div className="stat-label" style={{ color: '#10b981' }}>
+          <div className="stat-label" style={{ color: '#1a9d5c' }}>
             <TrendingUp size={16} /> Daily Avg
           </div>
           <div className="stat-value">{averageRounds}</div>
@@ -44,25 +43,21 @@ export default function History() {
       </div>
 
       <div className="card">
-        <div className="card-header">
-          <Calendar size={16} /> Recent Days
-        </div>
+        <div className="card-header"><Calendar size={16} /> Recent Days</div>
 
         {loading ? (
           <div className="empty-state">Loading history...</div>
         ) : logs.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">
-              <Sparkles size={24} color="var(--primary)" />
-            </div>
+            <div className="empty-state-icon"><Sparkles size={24} color="var(--primary)" /></div>
             No past logs found yet. Start chanting!
           </div>
         ) : (
           logs.map((log) => (
             <div key={log.id} className="card-row">
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{log.log_date}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-faint)', marginTop: '3px' }}>
+                <div className="card-row-title">{log.log_date}</div>
+                <div className="card-row-subtitle">
                   Wake: {log.wake_time || 'Not set'} &middot; Sleep: {log.sleep_time || 'Not set'}
                 </div>
               </div>

@@ -14,20 +14,17 @@ export default function Dashboard() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
         setUserId(user.id);
-
         const profile = await getUserProfile(user.id);
         if (profile) {
           if (profile.full_name) setFullName(profile.full_name);
           if (profile.theme) setTheme(profile.theme);
         }
-
         const log = await getTodayLog(user.id);
         if (log) {
           setJapaRounds(log.japa_rounds || 0);
           if (log.wake_time) setWakeTime(log.wake_time);
           if (log.sleep_time) setSleepTime(log.sleep_time);
         }
-
         const totals = await getTodayStudyTotals(user.id);
         setTotalReadingSecs(totals.reading);
         setTotalHearingSecs(totals.hearing);
@@ -56,16 +53,14 @@ export default function Dashboard() {
   const handleShareReport = () => {
     const todayStr = new Date().toLocaleDateString();
     const reportText =
-      `Hare Krishna Prabhuji,\n` +
-      `Dandavat Pranam.\n\n` +
+      `Hare Krishna Prabhuji,\nDandavat Pranam.\n\n` +
       `My today's report (${todayStr}):\n\n` +
       `Wake up time: ${wakeTime || 'Not set'}\n` +
       `Sleep time: ${sleepTime || 'Not set'}\n` +
       `Japa rounds: ${japaRounds} / 16\n` +
       `Reading: ${formatTime(totalReadingSecs)}\n` +
       `Hearing: ${formatTime(totalHearingSecs)}\n\n` +
-      `Your servant,\n` +
-      `${fullName}`;
+      `Your servant,\n${fullName}`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(reportText);
@@ -84,21 +79,20 @@ export default function Dashboard() {
           <h2 className="page-title">Hare Krishna, {fullName}!</h2>
           <p className="page-subtitle">Today's Sadhana Report</p>
         </div>
-        <button className="btn" onClick={handleShareReport} style={{ background: '#25D366', color: 'white', padding: '10px 16px', borderRadius: '999px', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}>
+        <button className="btn btn-share" onClick={handleShareReport}>
           <Share2 size={16} /> Share
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '18px' }}>
         <div className="card card-pad">
-          <div className="input-label" style={{ color: '#f59e0b', marginBottom: '10px' }}>
+          <div className="input-label" style={{ color: '#c2790a' }}>
             <Sun size={16} /> Wake Up
           </div>
           <input type="time" value={wakeTime} onChange={handleWakeChange} className="input" />
         </div>
-
         <div className="card card-pad">
-          <div className="input-label" style={{ color: '#6366f1', marginBottom: '10px' }}>
+          <div className="input-label" style={{ color: '#6b21a8' }}>
             <Moon size={16} /> Sleep
           </div>
           <input type="time" value={sleepTime} onChange={handleSleepChange} className="input" />
@@ -109,36 +103,30 @@ export default function Dashboard() {
         <div className="card-header">Daily Progress</div>
 
         <div className="card-row">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="icon-badge" style={{ background: 'var(--primary-light)' }}>
-              <CircleDashed size={20} color="var(--primary)" />
-            </div>
+          <div className="card-row-left">
+            <div className="icon-badge amber"><CircleDashed size={20} color="var(--primary)" /></div>
             <div>
-              <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Japa Rounds</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>{progressPct}% of daily goal</div>
+              <div className="card-row-title">Japa Rounds</div>
+              <div className="card-row-subtitle">{progressPct}% of daily goal</div>
             </div>
           </div>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800 }}>{japaRounds}<span className="text-faint" style={{ fontWeight: 600, fontSize: '0.9rem' }}> / 16</span></span>
+          <span className="card-row-value">{japaRounds}<span className="text-faint" style={{ fontWeight: 600, fontSize: '0.9rem' }}> / 16</span></span>
         </div>
 
         <div className="card-row">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="icon-badge" style={{ background: '#eff6ff' }}>
-              <BookOpen size={20} color="#3b82f6" />
-            </div>
-            <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Reading</span>
+          <div className="card-row-left">
+            <div className="icon-badge blue"><BookOpen size={20} color="#3b82f6" /></div>
+            <span className="card-row-title">Reading</span>
           </div>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800 }}>{formatTime(totalReadingSecs)}</span>
+          <span className="card-row-value">{formatTime(totalReadingSecs)}</span>
         </div>
 
         <div className="card-row">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="icon-badge" style={{ background: '#f5f3ff' }}>
-              <Headphones size={20} color="#8b5cf6" />
-            </div>
-            <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Hearing</span>
+          <div className="card-row-left">
+            <div className="icon-badge violet"><Headphones size={20} color="#8b5cf6" /></div>
+            <span className="card-row-title">Hearing</span>
           </div>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800 }}>{formatTime(totalHearingSecs)}</span>
+          <span className="card-row-value">{formatTime(totalHearingSecs)}</span>
         </div>
       </div>
     </div>

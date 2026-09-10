@@ -32,8 +32,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="page fade-in" style={{ textAlign: 'center', paddingTop: '52px' }}>
-      <div style={{ width: '64px', height: '64px', borderRadius: '18px', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 8px 20px rgba(249,115,22,0.3)' }}>
+    <div className="page fade-in auth-wrap">
+      <div className="auth-logo">
         <Sparkles size={30} color="white" />
       </div>
 
@@ -42,7 +42,7 @@ export default function Auth() {
         Sign in to track your daily offerings to Krishna.
       </p>
 
-      <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
+      <form onSubmit={handleAuth} className="auth-form">
         {!isLogin && (
           <input
             type="text"
@@ -62,7 +62,7 @@ export default function Auth() {
           className="input"
         />
 
-        <div style={{ position: 'relative' }}>
+        <div className="password-wrap">
           <input
             type={showPassword ? 'text' : 'password'}
             placeholder="Password"
@@ -76,11 +76,7 @@ export default function Auth() {
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
-            style={{
-              position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-              background: 'none', border: 'none', cursor: 'pointer', display: 'flex',
-              alignItems: 'center', color: 'var(--text-faint)', padding: 0,
-            }}
+            className="password-toggle"
           >
             {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
           </button>
@@ -91,10 +87,7 @@ export default function Auth() {
         </button>
       </form>
 
-      <button
-        onClick={() => setIsLogin(!isLogin)}
-        style={{ marginTop: '22px', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}
-      >
+      <button onClick={() => setIsLogin(!isLogin)} className="auth-switch">
         {isLogin ? 'New devotee? Create an account' : 'Already have an account? Sign in'}
       </button>
     </div>

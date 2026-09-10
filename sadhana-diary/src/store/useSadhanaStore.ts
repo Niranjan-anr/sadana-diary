@@ -35,19 +35,9 @@ interface SadhanaState {
 export function applyThemeToDocument(themeId: string) {
   const theme = getTheme(themeId);
 
-  document.body.className = `theme-${themeId}`;
-
   document.documentElement.style.setProperty('--primary', theme.color);
   document.documentElement.style.setProperty('--primary-dark', theme.colorDark);
-
-  // Light wash so the artwork is actually visible, tinted with the theme
-  // color instead of flat white — reads as "temple ambience" not "hidden image"
-  document.body.style.backgroundImage =
-    `linear-gradient(rgba(255,253,249,0.55), rgba(255,253,249,0.72)), url(${theme.bgImage})`;
-  document.body.style.backgroundSize = 'cover';
-  document.body.style.backgroundPosition = 'center';
-  document.body.style.backgroundAttachment = 'fixed';
-  document.body.style.backgroundRepeat = 'no-repeat';
+  document.documentElement.style.setProperty('--theme-bg-image', `url(${theme.bgImage})`);
 }
 
 export const useSadhanaStore = create<SadhanaState>()(
@@ -86,7 +76,6 @@ export const useSadhanaStore = create<SadhanaState>()(
     }),
     {
       name: 'sadhana-storage',
-      // Only persist the small, genuinely durable bits — not live timers
       partialize: (state) => ({
         fullName: state.fullName,
         theme: state.theme,
@@ -95,8 +84,6 @@ export const useSadhanaStore = create<SadhanaState>()(
         sleepTime: state.sleepTime,
       }),
       onRehydrateStorage: () => (state) => {
-        // Fires once localStorage has loaded — apply the theme immediately,
-        // before Supabase's profile fetch even starts, so there's no blank flash
         if (state) applyThemeToDocument(state.theme);
       },
     }

@@ -54,21 +54,10 @@ export default function Profile() {
           <User size={16} color="var(--primary)" /> Your Name / Spiritual Name
         </label>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <input
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            placeholder="e.g., Niranjan Das"
-            className="input"
-            style={{ flex: 1 }}
-          />
+          <input type="text" value={nameInput} onChange={(e) => setNameInput(e.target.value)} placeholder="e.g., Niranjan Das" className="input" style={{ flex: 1 }} />
           <button type="submit" className="btn btn-primary">Save</button>
         </div>
-        {saved && (
-          <span className="save-confirm">
-            <Check size={14} /> Name saved successfully!
-          </span>
-        )}
+        {saved && <span className="save-confirm"><Check size={14} /> Name saved successfully!</span>}
       </form>
 
       <div className="card card-pad">
@@ -83,24 +72,10 @@ export default function Profile() {
           {THEMES.map((t) => {
             const active = theme === t.id;
             return (
-              <div
-                key={t.id}
-                onClick={() => handleSelectTheme(t.id)}
-                className={`theme-tile${active ? ' theme-tile-active' : ''}`}
-                style={{
-                  backgroundImage: `url(${t.bgImage})`,
-                  borderColor: active ? t.color : 'transparent',
-                }}
-              >
+              <div key={t.id} onClick={() => handleSelectTheme(t.id)} className={`theme-tile${active ? ' theme-tile-active' : ''}`} style={{ backgroundImage: `url(${t.bgImage})`, borderColor: active ? t.color : 'transparent' }}>
                 <div className="theme-tile-dot" style={{ backgroundColor: t.color }} />
-                {active && (
-                  <div className="theme-tile-check">
-                    <Check size={12} color={t.color} />
-                  </div>
-                )}
-                <div className="theme-tile-overlay">
-                  <span className="theme-tile-label">{t.name}</span>
-                </div>
+                {active && <div className="theme-tile-check"><Check size={12} color={t.color} /></div>}
+                <div className="theme-tile-overlay"><span className="theme-tile-label">{t.name}</span></div>
               </div>
             );
           })}

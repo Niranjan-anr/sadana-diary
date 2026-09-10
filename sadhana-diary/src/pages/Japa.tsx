@@ -49,7 +49,7 @@ export default function Japa() {
         Track your daily chanting of the Hare Krishna Maha Mantra.
       </p>
 
-      <div style={{ position: 'relative', width: '240px', height: '240px', margin: '0 auto 44px' }}>
+      <div className="japa-ring-wrap">
         <svg width="240" height="240" style={{ transform: 'rotate(-90deg)' }}>
           <circle cx="120" cy="120" r="100" fill="none" stroke="var(--border)" strokeWidth="10" />
           <circle
@@ -60,11 +60,9 @@ export default function Japa() {
             style={{ transition: 'stroke-dashoffset 0.3s ease' }}
           />
         </svg>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '4.2rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1, letterSpacing: '-0.03em' }}>
-            {japaRounds}
-          </span>
-          <span className="text-muted" style={{ fontSize: '1rem', marginTop: '4px', fontWeight: 600 }}>of 16 Rounds</span>
+        <div className="japa-ring-value">
+          <span className="japa-ring-number">{japaRounds}</span>
+          <span className="japa-ring-label">of 16 Rounds</span>
         </div>
       </div>
 
@@ -73,9 +71,8 @@ export default function Japa() {
           <Minus size={22} />
         </button>
 
-        <button onClick={handleIncrement} className="btn btn-primary" style={{ padding: '18px 36px', borderRadius: '999px', fontSize: '1.1rem' }}>
-          <Plus size={22} />
-          Add Round
+        <button onClick={handleIncrement} className="btn btn-primary btn-pill" style={{ padding: '18px 36px', fontSize: '1.1rem' }}>
+          <Plus size={22} /> Add Round
         </button>
 
         <button onClick={handleReset} className="btn btn-outline btn-round">
