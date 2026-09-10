@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import {
   getMentorSadhakas, updateSadhakaTarget, getMyMentorCode, generateMentorCode,
 } from '../../lib/api';
+import { BHAKTI_STEPS, getBhaktiStep } from '../../lib/bhaktiSteps';
 import {
   Users, AlertCircle, CheckCircle2, Settings, X, Trophy,
   ChevronLeft, HelpCircle, Copy, RefreshCw,
@@ -19,6 +20,9 @@ type SadhakaRow = {
   hearing_seconds: number;
   target_hearing_seconds: number;
   completion_pct: number | null;
+  bhakti_step: string | null;
+  reading_material: string | null;
+  hearing_material: string | null;
 };
 
 type FilterView = 'all' | 'below' | 'not_reported' | 'completed';
@@ -42,6 +46,8 @@ export default function MentorDashboard() {
   const [editRounds, setEditRounds] = useState('16');
   const [editReading, setEditReading] = useState('0');
   const [editHearing, setEditHearing] = useState('0');
+  const [useStepMode, setUseStepMode] = useState(false);
+  const [editBhaktiStep, setEditBhaktiStep] = useState('');
   const [saving, setSaving] = useState(false);
 
   const loadSadhakas = async () => {
@@ -82,6 +88,14 @@ export default function MentorDashboard() {
     setEditRounds(String(s.target_rounds ?? 16));
     setEditReading(String(Math.round((s.target_reading_seconds ?? 0) / 60)));
     setEditHearing(String(Math.round((s.target_hearing_seconds ?? 0) / 60)));
+    setUseStepMode(!!s.bhakti_step);
+    setEditBhaktiStep(s.bhakti_step ?? '');
+  };
+
+  const handleSelectStep = (stepId: string) => {
+    setEditBhaktiStep(stepId);
+    const step = getBhaktiStep(stepId);
+    if (step) setEditRounds(String(step.minRounds));
   };
 
   const saveTarget = async () => {
@@ -92,6 +106,7 @@ export default function MentorDashboard() {
         min_rounds: parseInt(editRounds) || 0,
         min_reading_seconds: (parseInt(editReading) || 0) * 60,
         min_hearing_seconds: (parseInt(editHearing) || 0) * 60,
+        bhakti_step: useStepMode ? (editBhaktiStep || null) : null,
       });
       setEditingId(null);
       await loadSadhakas();
@@ -113,6 +128,54 @@ export default function MentorDashboard() {
     if (v === 'below') return belowTarget;
     if (v === 'not_reported') return notReported;
     return completed;
+  };
+
+  const renderRow = (s: SadhakaRow, i: number) => {
+    const pct = s.has_report_today ? Math.round((s.completion_pct ?? 0) * 100) : null;
+    const met = pct !== null && pct >= 100;
+    const stepDef = getBhaktiStep(s.bhakti_step);
+    return (
+      <div key={s.sadhaka_id} className="card-row">
+        <div className="card-row-left">
+          {view === 'completed' ? (
+            <div className="icon-badge amber" style={{ fontWeight: 800, color: 'var(--primary)' }}>
+              #{i + 1}
+            </div>
+          ) : (
+            <div className={`icon-badge ${met ? 'teal' : s.has_report_today ? 'rose' : 'amber'}`}>
+              {s.has_report_today
+                ? (met ? <CheckCircle2 size={20} color="#1a9d5c" /> : <AlertCircle size={20} color="#dc2626" />)
+                : <Users size={20} color="var(--primary)" />}
+            </div>
+          )}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span className="card-row-title">{s.full_name}</span>
+              {stepDef && (
+                <span className="pill" style={{ background: 'var(--primary-light)', color: 'var(--primary)', fontSize: '0.68rem', padding: '3px 8px' }}>
+                  {stepDef.name}
+                </span>
+              )}
+            </div>
+            <div className="card-row-subtitle">
+              {s.has_report_today
+                ? `${s.japa_rounds}/${s.target_rounds} rounds · ${pct}% of target`
+                : 'No report today yet'}
+            </div>
+            {(s.reading_material || s.hearing_material) && (
+              <div className="card-row-subtitle" style={{ marginTop: '2px' }}>
+                {s.reading_material && <>📖 {s.reading_material}</>}
+                {s.reading_material && s.hearing_material && ' · '}
+                {s.hearing_material && <>🎧 {s.hearing_material}</>}
+              </div>
+            )}
+          </div>
+        </div>
+        <button className="btn btn-outline btn-round" onClick={() => openEdit(s)} aria-label="Edit target">
+          <Settings size={18} />
+        </button>
+      </div>
+    );
   };
 
   // ---------- Overview screen ----------
@@ -187,6 +250,8 @@ export default function MentorDashboard() {
             editRounds={editRounds} setEditRounds={setEditRounds}
             editReading={editReading} setEditReading={setEditReading}
             editHearing={editHearing} setEditHearing={setEditHearing}
+            useStepMode={useStepMode} setUseStepMode={setUseStepMode}
+            editBhaktiStep={editBhaktiStep} onSelectStep={handleSelectStep}
             saving={saving} onCancel={() => setEditingId(null)} onSave={saveTarget}
           />
         )}
@@ -220,38 +285,7 @@ export default function MentorDashboard() {
             {meta.empty}
           </div>
         ) : (
-          rows.map((s, i) => {
-            const pct = s.has_report_today ? Math.round((s.completion_pct ?? 0) * 100) : null;
-            const met = pct !== null && pct >= 100;
-            return (
-              <div key={s.sadhaka_id} className="card-row">
-                <div className="card-row-left">
-                  {view === 'completed' ? (
-                    <div className="icon-badge amber" style={{ fontWeight: 800, color: 'var(--primary)' }}>
-                      #{i + 1}
-                    </div>
-                  ) : (
-                    <div className={`icon-badge ${met ? 'teal' : s.has_report_today ? 'rose' : 'amber'}`}>
-                      {s.has_report_today
-                        ? (met ? <CheckCircle2 size={20} color="#1a9d5c" /> : <AlertCircle size={20} color="#dc2626" />)
-                        : <Users size={20} color="var(--primary)" />}
-                    </div>
-                  )}
-                  <div>
-                    <div className="card-row-title">{s.full_name}</div>
-                    <div className="card-row-subtitle">
-                      {s.has_report_today
-                        ? `${s.japa_rounds}/${s.target_rounds} rounds · ${pct}% of target`
-                        : 'No report today yet'}
-                    </div>
-                  </div>
-                </div>
-                <button className="btn btn-outline btn-round" onClick={() => openEdit(s)} aria-label="Edit target">
-                  <Settings size={18} />
-                </button>
-              </div>
-            );
-          })
+          rows.map((s, i) => renderRow(s, i))
         )}
       </div>
 
@@ -260,6 +294,8 @@ export default function MentorDashboard() {
           editRounds={editRounds} setEditRounds={setEditRounds}
           editReading={editReading} setEditReading={setEditReading}
           editHearing={editHearing} setEditHearing={setEditHearing}
+          useStepMode={useStepMode} setUseStepMode={setUseStepMode}
+          editBhaktiStep={editBhaktiStep} onSelectStep={handleSelectStep}
           saving={saving} onCancel={() => setEditingId(null)} onSave={saveTarget}
         />
       )}
@@ -269,11 +305,14 @@ export default function MentorDashboard() {
 
 function TargetModal({
   editRounds, setEditRounds, editReading, setEditReading, editHearing, setEditHearing,
+  useStepMode, setUseStepMode, editBhaktiStep, onSelectStep,
   saving, onCancel, onSave,
 }: {
   editRounds: string; setEditRounds: (v: string) => void;
   editReading: string; setEditReading: (v: string) => void;
   editHearing: string; setEditHearing: (v: string) => void;
+  useStepMode: boolean; setUseStepMode: (v: boolean) => void;
+  editBhaktiStep: string; onSelectStep: (stepId: string) => void;
   saving: boolean; onCancel: () => void; onSave: () => void;
 }) {
   return (
@@ -285,7 +324,48 @@ function TargetModal({
             <X size={16} />
           </button>
         </div>
-        <div className="field-group" style={{ textAlign: 'left', marginTop: '18px' }}>
+
+        <div className="mode-toggle" style={{ marginTop: '18px' }}>
+          <button
+            type="button"
+            className={`mode-toggle-btn${!useStepMode ? ' active' : ''}`}
+            onClick={() => setUseStepMode(false)}
+          >
+            Manual Rounds
+          </button>
+          <button
+            type="button"
+            className={`mode-toggle-btn${useStepMode ? ' active' : ''}`}
+            onClick={() => setUseStepMode(true)}
+          >
+            Bhakti Step
+          </button>
+        </div>
+
+        {useStepMode ? (
+          <div className="field-group" style={{ textAlign: 'left' }}>
+            <label className="input-label">Assign Bhakti Step</label>
+            <select
+              className="input"
+              value={editBhaktiStep}
+              onChange={(e) => onSelectStep(e.target.value)}
+            >
+              <option value="">— Select a step —</option>
+              {BHAKTI_STEPS.map((step) => (
+                <option key={step.id} value={step.id}>
+                  {step.name} (min {step.minRounds} rounds)
+                </option>
+              ))}
+            </select>
+            {editBhaktiStep && (
+              <p className="text-faint" style={{ fontSize: '0.78rem', marginTop: '8px', marginBottom: 0 }}>
+                Min Japa Rounds set to {editRounds} automatically. You can still fine-tune it below.
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        <div className="field-group" style={{ textAlign: 'left', marginTop: useStepMode ? '4px' : '18px' }}>
           <label className="input-label">Minimum Japa Rounds</label>
           <input type="number" min="0" className="input" value={editRounds} onChange={(e) => setEditRounds(e.target.value)} />
         </div>

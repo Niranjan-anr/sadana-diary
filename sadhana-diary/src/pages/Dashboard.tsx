@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useSadhanaStore } from '../store/useSadhanaStore';
-import { getTodayLog, getTodayStudyTotals, updateField, getUserProfile, getSadhakaTarget, getTodayReport, submitDailyReport, getLeaderboard, type LeaderboardPeriod } from '../lib/api';
+import {
+  getTodayLog,
+  getTodayStudyTotals,
+  getTodayStudyMaterials,
+  updateField,
+  getUserProfile,
+  getSadhakaTarget,
+  getTodayReport,
+  submitDailyReport,
+  getLeaderboard,
+} from '../lib/api';
+import type { LeaderboardPeriod } from '../lib/api';
+import { getBhaktiStep } from '../lib/bhaktiSteps';
 import { supabase } from '../lib/supabase';
 import { Sun, Moon, CircleDashed, BookOpen, Headphones, Send, Check, Lock, Trophy, ChevronLeft } from 'lucide-react';
 
-const DEFAULT_TARGET = { min_rounds: 16, min_reading_seconds: 0, min_hearing_seconds: 0 };
+const DEFAULT_TARGET = { min_rounds: 16, min_reading_seconds: 0, min_hearing_seconds: 0, bhakti_step: null as string | null };
 
 const PERIOD_LABEL: Record<LeaderboardPeriod, string> = {
   daily: 'Today',
@@ -13,6 +25,7 @@ const PERIOD_LABEL: Record<LeaderboardPeriod, string> = {
 };
 
 type LeaderboardRow = { sadhaka_id: string; full_name: string; completion_pct: number; is_me: boolean };
+type TodayReport = { id: string; reading_material: string | null; hearing_material: string | null };
 
 export default function Dashboard() {
   const { fullName, setFullName, setTheme, japaRounds, setJapaRounds, wakeTime, sleepTime, setWakeTime, setSleepTime } = useSadhanaStore();
@@ -21,17 +34,21 @@ export default function Dashboard() {
   const [totalHearingSecs, setTotalHearingSecs] = useState(0);
   const [target, setTarget] = useState(DEFAULT_TARGET);
 
-  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [todayReport, setTodayReport] = useState<TodayReport | null>(null);
+  const alreadySubmitted = !!todayReport;
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [justSubmitted, setJustSubmitted] = useState(false);
 
-  // Manual overrides — let a sadhaka correct today's numbers before submitting
-  // (e.g. they forgot to start the reading timer). null means "use the
-  // computed/tracked value"; once they type something, that wins.
+  // Manual overrides for numbers — null means "use the tracked value"
   const [editJapa, setEditJapa] = useState<number | null>(null);
   const [editReadingMin, setEditReadingMin] = useState<number | null>(null);
   const [editHearingMin, setEditHearingMin] = useState<number | null>(null);
+
+  // Book/topic text — pre-filled from today's logged sessions, editable
+  const [editReadingMaterial, setEditReadingMaterial] = useState('');
+  const [editHearingMaterial, setEditHearingMaterial] = useState('');
 
   // Leaderboard view
   const [view, setView] = useState<'main' | 'leaderboard'>('main');
@@ -58,11 +75,15 @@ export default function Dashboard() {
         setTotalReadingSecs(totals.reading);
         setTotalHearingSecs(totals.hearing);
 
+        const materials = await getTodayStudyMaterials(user.id);
+        setEditReadingMaterial(materials.reading.join(', '));
+        setEditHearingMaterial(materials.hearing.join(', '));
+
         const t = await getSadhakaTarget(user.id);
         setTarget(t ?? DEFAULT_TARGET);
 
         const existingReport = await getTodayReport(user.id);
-        setAlreadySubmitted(!!existingReport);
+        setTodayReport(existingReport ?? null);
       }
     });
   }, [setJapaRounds, setWakeTime, setSleepTime, setFullName, setTheme]);
@@ -94,16 +115,30 @@ export default function Dashboard() {
     return `${h}h ${m}m`;
   };
 
-  // Resolved values — manual edit wins if the person has touched that field,
-  // otherwise fall back to the tracked/computed value.
   const effectiveJapa = editJapa ?? japaRounds;
   const effectiveReadingSecs = editReadingMin !== null ? editReadingMin * 60 : totalReadingSecs;
   const effectiveHearingSecs = editHearingMin !== null ? editHearingMin * 60 : totalHearingSecs;
+
+  const currentStep = getBhaktiStep(target.bhakti_step);
+
+  const handleSubmitClick = () => {
+    if (effectiveReadingSecs > 0 && !editReadingMaterial.trim()) {
+      alert('Please note what book or topic you read today before submitting.');
+      return;
+    }
+    if (effectiveHearingSecs > 0 && !editHearingMaterial.trim()) {
+      alert('Please note what you heard today before submitting.');
+      return;
+    }
+    setShowConfirmModal(true);
+  };
 
   const handleConfirmSubmit = async () => {
     if (!userId) return;
     setSubmitting(true);
     try {
+      const readingMaterial = editReadingMaterial.trim() || null;
+      const hearingMaterial = editHearingMaterial.trim() || null;
       await submitDailyReport(userId, {
         wake_time: wakeTime || null,
         sleep_time: sleepTime || null,
@@ -113,9 +148,11 @@ export default function Dashboard() {
         target_rounds: target.min_rounds,
         target_reading_seconds: target.min_reading_seconds,
         target_hearing_seconds: target.min_hearing_seconds,
+        reading_material: readingMaterial,
+        hearing_material: hearingMaterial,
         submitted_by: 'manual',
       });
-      setAlreadySubmitted(true);
+      setTodayReport({ id: 'submitted', reading_material: readingMaterial, hearing_material: hearingMaterial });
       setJustSubmitted(true);
       setTimeout(() => setJustSubmitted(false), 3000);
     } catch (err) {
@@ -148,7 +185,7 @@ export default function Dashboard() {
                 <Lock size={16} /> Report Sent
               </button>
             ) : (
-              <button className="btn btn-share" onClick={() => setShowConfirmModal(true)}>
+              <button className="btn btn-share" onClick={handleSubmitClick}>
                 <Send size={16} /> Submit
               </button>
             )
@@ -213,6 +250,20 @@ export default function Dashboard() {
             <div className="success-banner"><Check size={18} /> Report sent to your mentor!</div>
           )}
 
+          {currentStep && (
+            <div className="card card-pad" style={{ marginBottom: '18px' }}>
+              <div className="input-label" style={{ marginBottom: '8px' }}>
+                Your Bhakti Step: {currentStep.name}
+              </div>
+              <p className="text-faint" style={{ fontSize: '0.78rem', marginBottom: '6px' }}>
+                Reading list for this step:
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {currentStep.readingList.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '18px' }}>
             <div className="card card-pad">
               <div className="input-label" style={{ color: '#c2790a' }}>
@@ -256,47 +307,83 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="card-row">
-              <div className="card-row-left">
-                <div className="icon-badge blue"><BookOpen size={20} color="#3b82f6" /></div>
-                <span className="card-row-title">Reading</span>
+            <div className="card-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="card-row-left">
+                  <div className="icon-badge blue"><BookOpen size={20} color="#3b82f6" /></div>
+                  <span className="card-row-title">Reading</span>
+                </div>
+                {alreadySubmitted ? (
+                  <span className="card-row-value">{formatTime(effectiveReadingSecs)}</span>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input"
+                      style={{ width: '70px', textAlign: 'right', padding: '8px' }}
+                      value={Math.round(effectiveReadingSecs / 60)}
+                      onChange={(e) => setEditReadingMin(Math.max(0, parseInt(e.target.value) || 0))}
+                    />
+                    <span className="text-faint" style={{ fontSize: '0.8rem' }}>min</span>
+                  </div>
+                )}
               </div>
               {alreadySubmitted ? (
-                <span className="card-row-value">{formatTime(effectiveReadingSecs)}</span>
+                todayReport?.reading_material && (
+                  <p className="text-faint" style={{ fontSize: '0.78rem', margin: '0 0 0 52px' }}>
+                    📖 {todayReport.reading_material}
+                  </p>
+                )
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <input
-                    type="number"
-                    min="0"
-                    className="input"
-                    style={{ width: '70px', textAlign: 'right', padding: '8px' }}
-                    value={Math.round(effectiveReadingSecs / 60)}
-                    onChange={(e) => setEditReadingMin(Math.max(0, parseInt(e.target.value) || 0))}
-                  />
-                  <span className="text-faint" style={{ fontSize: '0.8rem' }}>min</span>
-                </div>
+                <input
+                  type="text"
+                  className="input"
+                  style={{ marginLeft: '52px', width: 'calc(100% - 52px)', fontSize: '0.85rem' }}
+                  placeholder="Book / topic (e.g. Bhagavad-gita Ch. 4)"
+                  value={editReadingMaterial}
+                  onChange={(e) => setEditReadingMaterial(e.target.value)}
+                />
               )}
             </div>
 
-            <div className="card-row">
-              <div className="card-row-left">
-                <div className="icon-badge violet"><Headphones size={20} color="#8b5cf6" /></div>
-                <span className="card-row-title">Hearing</span>
+            <div className="card-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="card-row-left">
+                  <div className="icon-badge violet"><Headphones size={20} color="#8b5cf6" /></div>
+                  <span className="card-row-title">Hearing</span>
+                </div>
+                {alreadySubmitted ? (
+                  <span className="card-row-value">{formatTime(effectiveHearingSecs)}</span>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input"
+                      style={{ width: '70px', textAlign: 'right', padding: '8px' }}
+                      value={Math.round(effectiveHearingSecs / 60)}
+                      onChange={(e) => setEditHearingMin(Math.max(0, parseInt(e.target.value) || 0))}
+                    />
+                    <span className="text-faint" style={{ fontSize: '0.8rem' }}>min</span>
+                  </div>
+                )}
               </div>
               {alreadySubmitted ? (
-                <span className="card-row-value">{formatTime(effectiveHearingSecs)}</span>
+                todayReport?.hearing_material && (
+                  <p className="text-faint" style={{ fontSize: '0.78rem', margin: '0 0 0 52px' }}>
+                    🎧 {todayReport.hearing_material}
+                  </p>
+                )
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <input
-                    type="number"
-                    min="0"
-                    className="input"
-                    style={{ width: '70px', textAlign: 'right', padding: '8px' }}
-                    value={Math.round(effectiveHearingSecs / 60)}
-                    onChange={(e) => setEditHearingMin(Math.max(0, parseInt(e.target.value) || 0))}
-                  />
-                  <span className="text-faint" style={{ fontSize: '0.8rem' }}>min</span>
-                </div>
+                <input
+                  type="text"
+                  className="input"
+                  style={{ marginLeft: '52px', width: 'calc(100% - 52px)', fontSize: '0.85rem' }}
+                  placeholder="Book / topic (e.g. BG Ch. 4 lecture)"
+                  value={editHearingMaterial}
+                  onChange={(e) => setEditHearingMaterial(e.target.value)}
+                />
               )}
             </div>
           </div>

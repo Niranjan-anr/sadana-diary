@@ -51,7 +51,8 @@ export async function saveStudySession(
   sessionType: 'reading' | 'hearing',
   materialTitle: string,
   durationSeconds: number,
-  notes?: string
+  notes?: string,
+  source: 'timer' | 'external' = 'timer'
 ) {
   const today = new Date().toISOString().split('T')[0];
 
@@ -63,7 +64,8 @@ export async function saveStudySession(
       session_type: sessionType,
       material_title: materialTitle,
       duration_seconds: durationSeconds,
-      notes: notes || null
+      notes: notes || null,
+      source,
     }]);
 
   if (error) {
@@ -101,6 +103,27 @@ export async function getTodayStudyTotals(userId: string) {
   return { reading, hearing };
 }
 
+// Titles of everything logged today, for pre-filling the "book/topic"
+// fields on the Dashboard before submission.
+export async function getTodayStudyMaterials(userId: string) {
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .select('session_type, material_title')
+    .eq('user_id', userId)
+    .eq('log_date', today);
+
+  if (error || !data) {
+    return { reading: [] as string[], hearing: [] as string[] };
+  }
+
+  const reading = data.filter((s) => s.session_type === 'reading').map((s) => s.material_title).filter(Boolean);
+  const hearing = data.filter((s) => s.session_type === 'hearing').map((s) => s.material_title).filter(Boolean);
+
+  return { reading, hearing };
+}
+
 export async function getPastLogs(userId: string) {
   const { data, error } = await supabase
     .from('daily_logs')
@@ -116,9 +139,6 @@ export async function getPastLogs(userId: string) {
   return data || [];
 }
 
-// Fetch user profile data (Name, Theme, Role) — FIXED: was two chained
-// .select() calls, and the second one was silently overwriting the first,
-// dropping `role` every time.
 export async function getUserProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
@@ -140,7 +160,7 @@ export async function updateUserProfile(userId: string, updates: { full_name?: s
 export async function getSadhakaTarget(userId: string) {
   const { data } = await supabase
     .from('sadhaka_targets')
-    .select('min_rounds, min_reading_seconds, min_hearing_seconds')
+    .select('min_rounds, min_reading_seconds, min_hearing_seconds, bhakti_step')
     .eq('sadhaka_id', userId)
     .maybeSingle();
   return data;
@@ -150,7 +170,7 @@ export async function getTodayReport(userId: string) {
   const today = new Date().toISOString().split('T')[0];
   const { data } = await supabase
     .from('daily_reports')
-    .select('id')
+    .select('id, reading_material, hearing_material')
     .eq('sadhaka_id', userId)
     .eq('report_date', today)
     .maybeSingle();
@@ -168,6 +188,8 @@ export async function submitDailyReport(
     target_rounds: number;
     target_reading_seconds: number;
     target_hearing_seconds: number;
+    reading_material: string | null;
+    hearing_material: string | null;
     submitted_by: 'manual' | 'auto_midnight';
   }
 ) {
@@ -192,12 +214,12 @@ export async function getMentorSadhakas(mentorId: string) {
 
   const { data: targets } = await supabase
     .from('sadhaka_targets')
-    .select('sadhaka_id, min_rounds, min_reading_seconds, min_hearing_seconds')
+    .select('sadhaka_id, min_rounds, min_reading_seconds, min_hearing_seconds, bhakti_step')
     .in('sadhaka_id', sadhakas.map(s => s.id));
 
   const { data: reports } = await supabase
     .from('daily_reports')
-    .select('sadhaka_id, japa_rounds, target_rounds, reading_seconds, target_reading_seconds, hearing_seconds, target_hearing_seconds')
+    .select('sadhaka_id, japa_rounds, target_rounds, reading_seconds, target_reading_seconds, hearing_seconds, target_hearing_seconds, reading_material, hearing_material')
     .eq('report_date', today)
     .in('sadhaka_id', sadhakas.map(s => s.id));
 
@@ -217,6 +239,9 @@ export async function getMentorSadhakas(mentorId: string) {
       hearing_seconds: report?.hearing_seconds ?? 0,
       target_hearing_seconds: report?.target_hearing_seconds ?? target?.min_hearing_seconds ?? 0,
       completion_pct,
+      bhakti_step: target?.bhakti_step ?? null,
+      reading_material: report?.reading_material ?? null,
+      hearing_material: report?.hearing_material ?? null,
     };
   });
 }
@@ -234,7 +259,7 @@ function computeCompletionPct(r: {
 
 export async function updateSadhakaTarget(
   sadhakaId: string,
-  target: { min_rounds: number; min_reading_seconds: number; min_hearing_seconds: number }
+  target: { min_rounds: number; min_reading_seconds: number; min_hearing_seconds: number; bhakti_step: string | null }
 ) {
   const { error } = await supabase
     .from('sadhaka_targets')

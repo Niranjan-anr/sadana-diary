@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSadhanaStore } from '../store/useSadhanaStore';
 import { saveStudySession } from '../lib/api';
 import { supabase } from '../lib/supabase';
-import { Play, Pause, Square, ExternalLink, BookOpen, Smartphone, Book, Search, Check } from 'lucide-react';
+import { Play, Pause, Square, ExternalLink, BookOpen, Smartphone, Book, Search, Check, Clock } from 'lucide-react';
 
 type BookDef = { id: string; title: string; aliases: string[]; urlPath: string; structure: 'standard' | 'cantos' | 'lilas' | 'none'; hasIntro?: boolean; maxChapters?: number; hasVerses?: boolean; maxCantos?: number; lilas?: { id: string; name: string; chapters: number }[]; };
 
@@ -27,6 +27,7 @@ const BOOKS: BookDef[] = [
 export default function Reading() {
   const { readingSeconds, isReading, toggleTimer, tickTimer, resetTimer } = useSadhanaStore();
   const [readMode, setReadMode] = useState<'physical' | 'phone'>('phone');
+  const [logMode, setLogMode] = useState<'live' | 'past'>('live');
   const [searchQuery, setSearchQuery] = useState('');
 
   const [selectedBook, setSelectedBook] = useState<BookDef>(BOOKS[0]);
@@ -39,6 +40,9 @@ export default function Reading() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
+
+  const [pastMinutes, setPastMinutes] = useState('');
+  const [pastSaving, setPastSaving] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -62,13 +66,7 @@ export default function Reading() {
     return base;
   };
 
-  const handleStartReading = () => {
-    if (!isReading) toggleTimer();
-    if (readMode === 'phone') window.open(getVedabaseUrl(), '_blank', 'noopener,noreferrer');
-  };
-
-  const handleConfirmStop = async () => {
-    setShowConfirmModal(false);
+  const buildReadingTitle = () => {
     let title = readMode === 'phone' ? selectedBook.title : 'Physical Book Reading';
     if (readMode === 'phone') {
       if (selectedChapter === 'intro') {
@@ -80,8 +78,37 @@ export default function Reading() {
         if (selectedBook.hasVerses && selectedShloka.trim()) title += ` Verse ${selectedShloka.trim()}`;
       }
     }
-    if (userId) await saveStudySession(userId, 'reading', title, readingSeconds, notes);
+    return title;
+  };
+
+  const handleStartReading = () => {
+    if (!isReading) toggleTimer();
+    if (readMode === 'phone') window.open(getVedabaseUrl(), '_blank', 'noopener,noreferrer');
+  };
+
+  const handleConfirmStop = async () => {
+    setShowConfirmModal(false);
+    const title = buildReadingTitle();
+    if (userId) await saveStudySession(userId, 'reading', title, readingSeconds, notes, 'timer');
     resetTimer();
+    setNotes('');
+    setSelectedShloka('');
+    setSaveSuccessMsg(true);
+    setTimeout(() => setSaveSuccessMsg(false), 3000);
+  };
+
+  const handleLogPastSession = async () => {
+    const mins = parseInt(pastMinutes);
+    if (!mins || mins <= 0) {
+      alert('Please enter how many minutes you spent reading.');
+      return;
+    }
+    if (!userId) return;
+    setPastSaving(true);
+    const title = buildReadingTitle();
+    await saveStudySession(userId, 'reading', title, mins * 60, notes, 'external');
+    setPastSaving(false);
+    setPastMinutes('');
     setNotes('');
     setSelectedShloka('');
     setSaveSuccessMsg(true);
@@ -116,6 +143,15 @@ export default function Reading() {
       {saveSuccessMsg && (
         <div className="success-banner"><Check size={18} /> Reading session logged successfully!</div>
       )}
+
+      <div className="mode-toggle" style={{ marginBottom: '14px' }}>
+        <button type="button" onClick={() => setLogMode('live')} className={`mode-toggle-btn${logMode === 'live' ? ' active' : ''}`}>
+          <Play size={16} /> Track Now
+        </button>
+        <button type="button" onClick={() => setLogMode('past')} className={`mode-toggle-btn${logMode === 'past' ? ' active' : ''}`}>
+          <Clock size={16} /> Log Past Session
+        </button>
+      </div>
 
       <div className="mode-toggle">
         <button onClick={() => setReadMode('physical')} className={`mode-toggle-btn${readMode === 'physical' ? ' active' : ''}`}>
@@ -195,18 +231,35 @@ export default function Reading() {
         </div>
       )}
 
-      <div className="timer-card">
-        <div className="timer-display">{formatTime(readingSeconds)}</div>
-        <div className="timer-actions">
-          <button onClick={isReading && readMode === 'physical' ? toggleTimer : handleStartReading} className="btn btn-primary">
-            {readMode === 'phone' ? <ExternalLink size={20} /> : (isReading ? <Pause size={20} /> : <Play size={20} />)}
-            {readMode === 'phone' ? 'Open & Read' : (isReading ? 'Pause Timer' : 'Start Timer')}
-          </button>
-          <button onClick={() => { if (readingSeconds > 0) setShowConfirmModal(true); }} className="btn btn-danger-outline">
-            <Square size={20} /> Stop
+      {logMode === 'live' ? (
+        <div className="timer-card">
+          <div className="timer-display">{formatTime(readingSeconds)}</div>
+          <div className="timer-actions">
+            <button onClick={isReading && readMode === 'physical' ? toggleTimer : handleStartReading} className="btn btn-primary">
+              {readMode === 'phone' ? <ExternalLink size={20} /> : (isReading ? <Pause size={20} /> : <Play size={20} />)}
+              {readMode === 'phone' ? 'Open & Read' : (isReading ? 'Pause Timer' : 'Start Timer')}
+            </button>
+            <button onClick={() => { if (readingSeconds > 0) setShowConfirmModal(true); }} className="btn btn-danger-outline">
+              <Square size={20} /> Stop
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="card card-pad" style={{ marginBottom: '20px' }}>
+          <label className="input-label">Minutes Spent</label>
+          <input
+            type="number"
+            min="1"
+            className="input"
+            value={pastMinutes}
+            onChange={(e) => setPastMinutes(e.target.value)}
+            placeholder="e.g. 20"
+          />
+          <button onClick={handleLogPastSession} className="btn btn-primary btn-full" style={{ marginTop: '14px' }} disabled={pastSaving}>
+            {pastSaving ? 'Saving...' : 'Log Past Session'}
           </button>
         </div>
-      </div>
+      )}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <label className="notes-label"><BookOpen size={16} color="var(--primary)" /> Session Notes</label>

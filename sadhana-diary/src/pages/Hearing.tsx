@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSadhanaStore } from '../store/useSadhanaStore';
 import { saveStudySession } from '../lib/api';
 import { supabase } from '../lib/supabase';
-import { Square, Search, Play, Headphones, Check } from 'lucide-react';
+import { Square, Search, Play, Headphones, Check, Clock } from 'lucide-react';
 
 type CategoryDef = { id: string; title: string; aliases: string[]; structure: 'standard' | 'cantos' | 'lilas' | 'none'; hasIntro?: boolean; maxChapters?: number; hasVerses?: boolean; maxCantos?: number; lilas?: { id: string; name: string; chapters: number }[]; };
 
@@ -18,6 +18,7 @@ const LECTURE_CATEGORIES: CategoryDef[] = [
 export default function Hearing() {
   const { hearingSeconds, isHearing, toggleHearingTimer, tickHearingTimer, resetHearingTimer } = useSadhanaStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [logMode, setLogMode] = useState<'live' | 'past'>('live');
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryDef>(LECTURE_CATEGORIES[0]);
   const [selectedCanto, setSelectedCanto] = useState('1');
@@ -28,6 +29,9 @@ export default function Hearing() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
+
+  const [pastMinutes, setPastMinutes] = useState('');
+  const [pastSaving, setPastSaving] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -41,37 +45,57 @@ export default function Hearing() {
     return () => clearInterval(interval);
   }, [isHearing, tickHearingTimer]);
 
-  const getYoutubeSearchUrl = () => {
-    let query = `Srila Prabhupada ${selectedCategory.title}`;
-    if (selectedChapter === 'intro') {
-      query += ` Introduction`;
-    } else {
-      if (selectedCategory.structure === 'cantos') query += ` Canto ${selectedCanto}`;
-      if (selectedCategory.structure === 'lilas') query += ` ${selectedCategory.lilas?.find(l => l.id === selectedLila)?.name}`;
-      if (selectedCategory.structure !== 'none') query += ` Chapter ${selectedChapter}`;
-      if (selectedCategory.hasVerses && selectedShloka.trim()) query += ` Verse ${selectedShloka.trim()}`;
-    }
-    return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-  };
-
-  const handleStartHearing = () => {
-    if (!isHearing) toggleHearingTimer();
-    window.open(getYoutubeSearchUrl(), '_blank', 'noopener,noreferrer');
-  };
-
-  const handleConfirmStop = async () => {
-    setShowConfirmModal(false);
+  const buildHearingTitle = () => {
     let title = selectedCategory.title;
     if (selectedChapter === 'intro') {
       title += ` Introduction`;
     } else {
       if (selectedCategory.structure === 'cantos') title += ` Canto ${selectedCanto}`;
       if (selectedCategory.structure === 'lilas') title += ` ${selectedCategory.lilas?.find(l => l.id === selectedLila)?.name}`;
-      if (selectedCategory.structure !== 'none') title += ` Ch ${selectedChapter}`;
+      if (selectedCategory.structure !== 'none') title += ` Chapter ${selectedChapter}`;
       if (selectedCategory.hasVerses && selectedShloka.trim()) title += ` Verse ${selectedShloka.trim()}`;
     }
-    if (userId) await saveStudySession(userId, 'hearing', title, hearingSeconds);
+    return title;
+  };
+
+  const handleSearchClick = (platform: 'vani' | 'youtube') => {
+    if (!isHearing) toggleHearingTimer();
+    const title = buildHearingTitle();
+    let url = '';
+
+    if (platform === 'vani') {
+      // Uses Google site search to bypass Prabhupada Vani's internal bot block
+      url = `https://www.google.com/search?q=site:prabhupadavani.org+${encodeURIComponent(title)}`;
+    } else if (platform === 'youtube') {
+      // Direct YouTube search fallback
+      url = `https://www.youtube.com/results?search_query=${encodeURIComponent('Srila Prabhupada ' + title)}`;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleConfirmStop = async () => {
+    setShowConfirmModal(false);
+    const title = buildHearingTitle();
+    if (userId) await saveStudySession(userId, 'hearing', title, hearingSeconds, undefined, 'timer');
     resetHearingTimer();
+    setSelectedShloka('');
+    setSaveSuccessMsg(true);
+    setTimeout(() => setSaveSuccessMsg(false), 3000);
+  };
+
+  const handleLogPastSession = async () => {
+    const mins = parseInt(pastMinutes);
+    if (!mins || mins <= 0) {
+      alert('Please enter how many minutes you spent listening.');
+      return;
+    }
+    if (!userId) return;
+    setPastSaving(true);
+    const title = buildHearingTitle();
+    await saveStudySession(userId, 'hearing', title, mins * 60, undefined, 'external');
+    setPastSaving(false);
+    setPastMinutes('');
     setSelectedShloka('');
     setSaveSuccessMsg(true);
     setTimeout(() => setSaveSuccessMsg(false), 3000);
@@ -100,14 +124,23 @@ export default function Hearing() {
 
   return (
     <div className="page fade-in">
-      <h2 className="header-title">Prabhupada Vani</h2>
+      <h2 className="header-title">Prabhupada Audio</h2>
       <p className="page-subtitle" style={{ marginBottom: '20px' }}>
-        Search lectures and shlokas. Streams seamlessly via YouTube.
+        Search lectures and shlokas across trusted repositories.
       </p>
 
       {saveSuccessMsg && (
         <div className="success-banner"><Check size={18} /> Hearing session logged successfully!</div>
       )}
+
+      <div className="mode-toggle" style={{ marginBottom: '14px' }}>
+        <button type="button" onClick={() => setLogMode('live')} className={`mode-toggle-btn${logMode === 'live' ? ' active' : ''}`}>
+          <Play size={16} /> Track Now
+        </button>
+        <button type="button" onClick={() => setLogMode('past')} className={`mode-toggle-btn${logMode === 'past' ? ' active' : ''}`}>
+          <Clock size={16} /> Log Past Session
+        </button>
+      </div>
 
       <div className="selector-panel">
         <div className="search-box">
@@ -176,17 +209,42 @@ export default function Hearing() {
         </div>
       </div>
 
-      <div className="timer-card">
-        <div className="timer-display">{formatTime(hearingSeconds)}</div>
-        <div className="timer-actions">
-          <button onClick={handleStartHearing} className="btn btn-youtube">
-            <Play size={20} fill="currentColor" /> Listen on YouTube
-          </button>
-          <button onClick={() => { if (hearingSeconds > 0) setShowConfirmModal(true); }} className="btn btn-outline btn-pill" style={{ color: '#c1121f', borderColor: '#f3c6c6' }}>
-            <Square size={20} /> Stop
+      {logMode === 'live' ? (
+        <div className="timer-card">
+          <div className="timer-display">{formatTime(hearingSeconds)}</div>
+          
+          <div className="timer-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+            <p className="text-faint" style={{ fontSize: '0.85rem', margin: 0 }}>Select search destination:</p>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button onClick={() => handleSearchClick('vani')} className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '8px 14px' }}>
+                <Search size={16} /> Prabhupada Vani
+              </button>
+              <button onClick={() => handleSearchClick('youtube')} className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '8px 14px' }}>
+                <Play size={16} /> YouTube
+              </button>
+            </div>
+            
+            <button onClick={() => { if (hearingSeconds > 0) setShowConfirmModal(true); }} className="btn btn-outline btn-pill" style={{ color: '#c1121f', borderColor: '#f3c6c6', marginTop: '10px' }}>
+              <Square size={20} /> Stop Session & Log Time
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="card card-pad" style={{ marginBottom: '20px' }}>
+          <label className="input-label">Minutes Spent</label>
+          <input
+            type="number"
+            min="1"
+            className="input"
+            value={pastMinutes}
+            onChange={(e) => setPastMinutes(e.target.value)}
+            placeholder="e.g. 20"
+          />
+          <button onClick={handleLogPastSession} className="btn btn-primary btn-full" style={{ marginTop: '14px' }} disabled={pastSaving}>
+            {pastSaving ? 'Saving...' : 'Log Past Session'}
           </button>
         </div>
-      </div>
+      )}
 
       {showConfirmModal && (
         <div className="modal-overlay">
