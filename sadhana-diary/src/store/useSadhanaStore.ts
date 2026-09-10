@@ -38,6 +38,11 @@ export function applyThemeToDocument(themeId: string) {
   document.documentElement.style.setProperty('--primary', theme.color);
   document.documentElement.style.setProperty('--primary-dark', theme.colorDark);
   document.documentElement.style.setProperty('--theme-bg-image', `url(${theme.bgImage})`);
+
+  // Keep the mobile browser's status/nav bar in sync — cream, not the raw
+  // accent color, so it blends with the card surfaces instead of clashing
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', '#fdfaf5');
 }
 
 export const useSadhanaStore = create<SadhanaState>()(
