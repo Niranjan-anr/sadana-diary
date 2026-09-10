@@ -226,12 +226,10 @@ function computeCompletionPct(r: {
   reading_seconds: number; target_reading_seconds: number;
   hearing_seconds: number; target_hearing_seconds: number;
 }) {
-  const parts: number[] = [];
-  if (r.target_rounds > 0) parts.push(r.japa_rounds / r.target_rounds);
-  if (r.target_reading_seconds > 0) parts.push(r.reading_seconds / r.target_reading_seconds);
-  if (r.target_hearing_seconds > 0) parts.push(r.hearing_seconds / r.target_hearing_seconds);
-  if (parts.length === 0) return 0;
-  return parts.reduce((a, b) => a + b, 0) / parts.length;
+  const japaPct = r.target_rounds > 0 ? r.japa_rounds / r.target_rounds : 1;
+  const readingPct = r.target_reading_seconds > 0 ? r.reading_seconds / r.target_reading_seconds : 1;
+  const hearingPct = r.target_hearing_seconds > 0 ? r.hearing_seconds / r.target_hearing_seconds : 1;
+  return (japaPct + readingPct + hearingPct) / 3;
 }
 
 export async function updateSadhakaTarget(
@@ -279,4 +277,12 @@ export async function joinMentorByCode(sadhakaId: string, code: string) {
   if (updateErr) throw updateErr;
 
   return mentor.full_name as string;
+}
+
+export type LeaderboardPeriod = 'daily' | 'weekly' | 'all_time';
+
+export async function getLeaderboard(period: LeaderboardPeriod) {
+  const { data, error } = await supabase.rpc('get_peer_leaderboard', { p_period: period });
+  if (error) throw error;
+  return data as { sadhaka_id: string; full_name: string; completion_pct: number; is_me: boolean }[];
 }

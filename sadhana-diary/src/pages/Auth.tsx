@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { updateUserProfile } from '../lib/api';
 import { Eye, EyeOff, Sparkles } from 'lucide-react';
 
 export default function Auth() {
@@ -19,11 +18,14 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) alert(error.message);
     } else {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName.trim() } },
+      });
       if (error) {
         alert(error.message);
       } else if (data.user) {
-        await updateUserProfile(data.user.id, { full_name: fullName });
         alert('Account created successfully!');
       }
     }
