@@ -21,87 +21,64 @@ export default function Japa() {
 
   const handleIncrement = async () => {
     incrementRound();
-    if (userId) {
-      await updateJapaRounds(userId, japaRounds + 1);
-    }
+    if (userId) await updateJapaRounds(userId, japaRounds + 1);
   };
 
   const handleDecrement = async () => {
     if (japaRounds > 0) {
       decrementRound();
-      if (userId) {
-        await updateJapaRounds(userId, japaRounds - 1);
-      }
+      if (userId) await updateJapaRounds(userId, japaRounds - 1);
     }
   };
 
   const handleReset = async () => {
     if (confirm('Are you sure you want to reset your Japa count for today?')) {
       resetRounds();
-      if (userId) {
-        await updateJapaRounds(userId, 0);
-      }
+      if (userId) await updateJapaRounds(userId, 0);
     }
   };
 
+  const progressPct = Math.min(100, (japaRounds / 16) * 100);
+  const circumference = 2 * Math.PI * 100;
+  const dashOffset = circumference - (progressPct / 100) * circumference;
+
   return (
-    <div style={{ padding: '30px 20px', textAlign: 'center' }}>
-      <h2 className="header-title">Japa Offering</h2>
-      <p style={{ color: '#6b7280', marginBottom: '40px' }}>
+    <div className="page fade-in" style={{ textAlign: 'center' }}>
+      <h2 className="page-title">Japa Offering</h2>
+      <p className="page-subtitle" style={{ marginBottom: '40px' }}>
         Track your daily chanting of the Hare Krishna Maha Mantra.
       </p>
 
-      <div style={{
-        width: '220px',
-        height: '220px',
-        borderRadius: '50%',
-        border: '8px solid var(--primary)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '0 auto 50px',
-        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)'
-      }}>
-        <span style={{ fontSize: '5rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: '1' }}>
-          {japaRounds}
-        </span>
-        <span style={{ color: '#6b7280', fontSize: '1.1rem', marginTop: '5px' }}>Rounds</span>
+      <div style={{ position: 'relative', width: '240px', height: '240px', margin: '0 auto 44px' }}>
+        <svg width="240" height="240" style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="120" cy="120" r="100" fill="none" stroke="var(--border)" strokeWidth="10" />
+          <circle
+            cx="120" cy="120" r="100" fill="none"
+            stroke="var(--primary)" strokeWidth="10" strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+          />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '4.2rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1, letterSpacing: '-0.03em' }}>
+            {japaRounds}
+          </span>
+          <span className="text-muted" style={{ fontSize: '1rem', marginTop: '4px', fontWeight: 600 }}>of 16 Rounds</span>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
-        <button
-          onClick={handleDecrement}
-          style={{ padding: '12px', borderRadius: '50%', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#6b7280' }}
-        >
-          <Minus size={24} />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '18px' }}>
+        <button onClick={handleDecrement} className="btn btn-outline btn-round">
+          <Minus size={22} />
         </button>
-        
-        <button
-          onClick={handleIncrement}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            padding: '16px 32px', 
-            borderRadius: '9999px', 
-            border: 'none', 
-            background: 'var(--primary)', 
-            color: 'white', 
-            fontWeight: 'bold', 
-            fontSize: '1.1rem', 
-            cursor: 'pointer',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.15)'
-          }}
-        >
-          <Plus size={24} />
+
+        <button onClick={handleIncrement} className="btn btn-primary" style={{ padding: '18px 36px', borderRadius: '999px', fontSize: '1.1rem' }}>
+          <Plus size={22} />
           Add Round
         </button>
 
-        <button
-          onClick={handleReset}
-          style={{ padding: '12px', borderRadius: '50%', border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', color: '#6b7280' }}
-        >
+        <button onClick={handleReset} className="btn btn-outline btn-round">
           <RotateCcw size={20} />
         </button>
       </div>

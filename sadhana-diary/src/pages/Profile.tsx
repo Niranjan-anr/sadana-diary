@@ -2,18 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSadhanaStore } from '../store/useSadhanaStore';
 import { getUserProfile, updateUserProfile } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { THEMES } from '../lib/themes';
 import { User, Palette, Check } from 'lucide-react';
-
-const THEMES = [
-  { id: 'default', name: 'Default Saffron', color: '#f97316' },
-  { id: 'krishna', name: 'Sri Krishna (Peacock Blue)', color: '#1d4ed8' },
-  { id: 'radharani', name: 'Srimati Radharani', color: '#db2777' },
-  { id: 'balaram', name: 'Lord Balarama', color: '#15803d' },
-  { id: 'gaura', name: 'Sri Chaitanya Mahaprabhu', color: '#ca8a04' },
-  { id: 'nityananda', name: 'Lord Nityananda', color: '#0284c7' },
-  { id: 'prabhupada', name: 'Srila Prabhupada', color: '#9a3412' },
-  { id: 'panchatatva', name: 'Pancha-tattva', color: '#7c3aed' },
-];
 
 export default function Profile() {
   const { fullName, setFullName, theme, setTheme } = useSadhanaStore();
@@ -31,9 +21,7 @@ export default function Profile() {
             setFullName(profile.full_name);
             setNameInput(profile.full_name);
           }
-          if (profile.theme) {
-            setTheme(profile.theme);
-          }
+          if (profile.theme) setTheme(profile.theme);
         }
       }
     });
@@ -51,70 +39,71 @@ export default function Profile() {
 
   const handleSelectTheme = async (themeId: string) => {
     setTheme(themeId);
-    if (userId) {
-      await updateUserProfile(userId, { theme: themeId });
-    }
+    if (userId) await updateUserProfile(userId, { theme: themeId });
   };
 
   return (
-    <div style={{ padding: '30px 20px' }}>
-      <h2 className="header-title">Devotee Profile</h2>
-      <p style={{ color: '#6b7280', marginBottom: '25px', fontSize: '0.9rem' }}>
+    <div className="page fade-in">
+      <h2 className="page-title">Devotee Profile</h2>
+      <p className="page-subtitle" style={{ marginBottom: '22px' }}>
         Customize your name and choose your transcendental theme.
       </p>
 
-      {/* Name Form */}
-      <form onSubmit={handleSaveName} style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #eee', marginBottom: '25px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginBottom: '10px' }}>
-          <User size={18} color="var(--primary)" /> Your Name / Spiritual Name
+      <form onSubmit={handleSaveName} className="card card-pad" style={{ marginBottom: '20px' }}>
+        <label className="input-label">
+          <User size={16} color="var(--primary)" /> Your Name / Spiritual Name
         </label>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <input 
+          <input
             type="text"
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
             placeholder="e.g., Niranjan Das"
-            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '1rem' }}
+            className="input"
+            style={{ flex: 1 }}
           />
-          <button 
-            type="submit"
-            style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            Save
-          </button>
+          <button type="submit" className="btn btn-primary">Save</button>
         </div>
-        {saved && <span style={{ color: '#10b981', fontSize: '0.85rem', marginTop: '8px', display: 'block' }}>Name saved successfully!</span>}
+        {saved && (
+          <span className="save-confirm">
+            <Check size={14} /> Name saved successfully!
+          </span>
+        )}
       </form>
 
-      {/* Theme Selection */}
-      <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #eee' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginBottom: '15px' }}>
-          <Palette size={18} color="var(--primary)" /> Select Devotional Theme
+      <div className="card card-pad">
+        <div className="input-label" style={{ marginBottom: '4px' }}>
+          <Palette size={16} color="var(--primary)" /> Select Devotional Theme
         </div>
+        <p className="text-faint" style={{ fontSize: '0.78rem', marginTop: 0, marginBottom: '14px' }}>
+          Each theme changes the accent color and background across the whole app.
+        </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {THEMES.map((t) => (
-            <div 
-              key={t.id}
-              onClick={() => handleSelectTheme(t.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 15px',
-                borderRadius: '8px',
-                border: theme === t.id ? '2px solid var(--primary)' : '1px solid #e5e7eb',
-                background: theme === t.id ? 'var(--bg-main)' : 'white',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: t.color }}></div>
-                <span style={{ fontWeight: theme === t.id ? 'bold' : 'normal', color: 'var(--text-main)' }}>{t.name}</span>
+        <div className="theme-grid">
+          {THEMES.map((t) => {
+            const active = theme === t.id;
+            return (
+              <div
+                key={t.id}
+                onClick={() => handleSelectTheme(t.id)}
+                className={`theme-tile${active ? ' theme-tile-active' : ''}`}
+                style={{
+                  backgroundImage: `url(${t.bgImage})`,
+                  borderColor: active ? t.color : 'transparent',
+                }}
+              >
+                <div className="theme-tile-dot" style={{ backgroundColor: t.color }} />
+                {active && (
+                  <div className="theme-tile-check">
+                    <Check size={12} color={t.color} />
+                  </div>
+                )}
+                <div className="theme-tile-overlay">
+                  <span className="theme-tile-label">{t.name}</span>
+                </div>
               </div>
-              {theme === t.id && <Check size={18} color="var(--primary)" />}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

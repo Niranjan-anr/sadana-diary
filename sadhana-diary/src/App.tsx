@@ -10,6 +10,7 @@ import { Home, CircleDashed, BookOpen, Headphones, Calendar, User,LogOut } from 
 import Profile from './pages/Profile';
 import History from './pages/History';
 import './index.css';
+import { useSadhanaStore, applyThemeToDocument } from './store/useSadhanaStore';
 
 
 function Navigation() {
@@ -70,6 +71,9 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+  applyThemeToDocument(useSadhanaStore.getState().theme);
+}, []);
   // Block access to the main app if not logged in
   if (!session) {
     return (

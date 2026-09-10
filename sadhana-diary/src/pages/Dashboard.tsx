@@ -14,15 +14,13 @@ export default function Dashboard() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
         setUserId(user.id);
-        
-        // Fetch Profile Name and Theme
+
         const profile = await getUserProfile(user.id);
         if (profile) {
           if (profile.full_name) setFullName(profile.full_name);
           if (profile.theme) setTheme(profile.theme);
         }
-        
-        // Fetch Japa & Timetable
+
         const log = await getTodayLog(user.id);
         if (log) {
           setJapaRounds(log.japa_rounds || 0);
@@ -30,7 +28,6 @@ export default function Dashboard() {
           if (log.sleep_time) setSleepTime(log.sleep_time);
         }
 
-        // Fetch Study Totals
         const totals = await getTodayStudyTotals(user.id);
         setTotalReadingSecs(totals.reading);
         setTotalHearingSecs(totals.hearing);
@@ -58,7 +55,7 @@ export default function Dashboard() {
 
   const handleShareReport = () => {
     const todayStr = new Date().toLocaleDateString();
-    const reportText = 
+    const reportText =
       `Hare Krishna Prabhuji,\n` +
       `Dandavat Pranam.\n\n` +
       `My today's report (${todayStr}):\n\n` +
@@ -78,88 +75,70 @@ export default function Dashboard() {
     }
   };
 
+  const progressPct = Math.min(100, Math.round((japaRounds / 16) * 100));
+
   return (
-    <div style={{ padding: '30px 20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-        <h2 className="header-title" style={{ margin: 0 }}>Hare Krishna, {fullName}!</h2>
-        <button
-          onClick={handleShareReport}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: '#25D366',
-            color: 'white',
-            border: 'none',
-            padding: '8px 14px',
-            borderRadius: '20px',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            boxShadow: '0 2px 5px rgba(37, 211, 102, 0.3)'
-          }}
-        >
+    <div className="page fade-in">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 className="page-title">Hare Krishna, {fullName}!</h2>
+          <p className="page-subtitle">Today's Sadhana Report</p>
+        </div>
+        <button className="btn" onClick={handleShareReport} style={{ background: '#25D366', color: 'white', padding: '10px 16px', borderRadius: '999px', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}>
           <Share2 size={16} /> Share
         </button>
       </div>
 
-      <p style={{ color: '#6b7280', marginBottom: '25px', fontSize: '0.9rem' }}>
-        Today's Sadhana Report
-      </p>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '25px' }}>
-        <div style={{ background: '#fff', padding: '15px', borderRadius: '12px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b', fontWeight: 'bold' }}>
-            <Sun size={18} /> Wake Up
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '18px' }}>
+        <div className="card card-pad">
+          <div className="input-label" style={{ color: '#f59e0b', marginBottom: '10px' }}>
+            <Sun size={16} /> Wake Up
           </div>
-          <input 
-            type="time" 
-            value={wakeTime}
-            onChange={handleWakeChange}
-            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '1rem' }}
-          />
+          <input type="time" value={wakeTime} onChange={handleWakeChange} className="input" />
         </div>
 
-        <div style={{ background: '#fff', padding: '15px', borderRadius: '12px', border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6366f1', fontWeight: 'bold' }}>
-            <Moon size={18} /> Sleep
+        <div className="card card-pad">
+          <div className="input-label" style={{ color: '#6366f1', marginBottom: '10px' }}>
+            <Moon size={16} /> Sleep
           </div>
-          <input 
-            type="time" 
-            value={sleepTime}
-            onChange={handleSleepChange}
-            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '1rem' }}
-          />
+          <input type="time" value={sleepTime} onChange={handleSleepChange} className="input" />
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden' }}>
-        <div style={{ padding: '15px 20px', borderBottom: '1px solid #eee', background: '#fafafa', fontWeight: 'bold' }}>
-          Daily Progress
-        </div>
-        
-        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#4b5563' }}>
-            <CircleDashed size={24} color="var(--saffron-500)" />
-            <span style={{ fontSize: '1.1rem' }}>Japa Rounds</span>
+      <div className="card" style={{ marginBottom: '18px' }}>
+        <div className="card-header">Daily Progress</div>
+
+        <div className="card-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="icon-badge" style={{ background: 'var(--primary-light)' }}>
+              <CircleDashed size={20} color="var(--primary)" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Japa Rounds</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>{progressPct}% of daily goal</div>
+            </div>
           </div>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{japaRounds} / 16</span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800 }}>{japaRounds}<span className="text-faint" style={{ fontWeight: 600, fontSize: '0.9rem' }}> / 16</span></span>
         </div>
 
-        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#4b5563' }}>
-            <BookOpen size={24} color="var(--saffron-500)" />
-            <span style={{ fontSize: '1.1rem' }}>Reading</span>
+        <div className="card-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="icon-badge" style={{ background: '#eff6ff' }}>
+              <BookOpen size={20} color="#3b82f6" />
+            </div>
+            <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Reading</span>
           </div>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{formatTime(totalReadingSecs)}</span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800 }}>{formatTime(totalReadingSecs)}</span>
         </div>
 
-        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#4b5563' }}>
-            <Headphones size={24} color="var(--saffron-500)" />
-            <span style={{ fontSize: '1.1rem' }}>Hearing</span>
+        <div className="card-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="icon-badge" style={{ background: '#f5f3ff' }}>
+              <Headphones size={20} color="#8b5cf6" />
+            </div>
+            <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Hearing</span>
           </div>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{formatTime(totalHearingSecs)}</span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800 }}>{formatTime(totalHearingSecs)}</span>
         </div>
       </div>
     </div>
