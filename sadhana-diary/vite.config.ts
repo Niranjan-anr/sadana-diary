@@ -13,8 +13,8 @@ export default defineConfig({
         name: 'Sadhana Diary',
         short_name: 'Sadhana',
         description: 'ISKCON Daily Sadhana Tracker',
-        theme_color: '#f97316',
-        background_color: '#ffffff',
+        theme_color: '#fdfaf5',
+        background_color: '#fdfaf5',
         display: 'standalone',
         icons: [
           {
